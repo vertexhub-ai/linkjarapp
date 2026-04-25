@@ -1,0 +1,47 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api:
+    name: API (Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            api/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('api/Cargo.lock', 'api/Cargo.toml') }}
+      - name: cargo check
+        run: |
+          if [ -d api ] && [ -f api/Cargo.toml ]; then
+            cd api
+            export SQLX_OFFLINE=true
+            cargo check --all-targets
+          else
+            echo "api/ not present yet, skipping"
+          fi
+
+  web:
+    name: Web (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: npm install + build
+        run: |
+          if [ -d web ] && [ -f web/package.json ]; then
+            cd web
+            npm install --no-audit --no-fund
+            npm run build
+          else
+            echo "web/ not present yet, skipping"
+          fi
